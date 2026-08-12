@@ -1,22 +1,22 @@
-# 🏭 JSSP: Operations Research vs Reinforcement Learning
+# JSSP: Operations Research vs Reinforcement Learning
 
-## 🎯 The Challenge: Optimality vs. Reactivity
+## Background
 
-In a factory, time is money. Mathematical solvers like Google OR-Tools are incredible: they can find the absolute perfect schedule (the optimal Makespan) for a static environment. But reality is rarely static. A machine breaks, an urgent order drops, and suddenly, you don't have the time to let a solver recompute everything from scratch.
+Exact solvers such as Google OR-Tools can compute optimal makespans for a fixed JSSP instance. In practice, schedules often need to be revised when a machine fails or a priority order arrives, without time to rerun a full optimization from scratch.
 
-This project started with a practical question: *Can we train a Reinforcement Learning (RL) agent to learn enough empirical rules to readjust a factory schedule in real-time?*
+This project compares a reinforcement learning (RL) approach against that baseline: can an agent learn enough scheduling heuristics to adjust a plan quickly?
 
-To test this, I pitted a standard RL architecture (Maskable PPO with a flat 1D MLP policy) against the absolute baseline of the Job Shop Scheduling Problem (JSSP): the infamous Fisher & Thompson 10x10 benchmark (FT10).
+The RL setup uses Maskable PPO with a flat 1D MLP policy. The benchmark is the Fisher & Thompson 10×10 instance (FT10).
 
-## 📄 Full Study (Report)
+## Study Report
 
-If you want to dive into the methodology, the reward shaping strategies, and why flat vectors are mathematically doomed to fail against graph structures, you can read my full study report (in French):
+Methodology, reward shaping, and the limitations of flat vector observations versus graph-based representations are described in the full study (French):
 
-👉 **[Read the Full Report (PDF)](./study_report.pdf)**
+**[Study report (PDF)](./study_report.pdf)**
 
-## ⚙️ Installation
+## Installation
 
-Clone the repository and install the required dependencies:
+Clone the repository and install the dependencies:
 
 ```bash
 git clone https://github.com/bobL59/jssp-rl-vs-or.git
@@ -24,9 +24,9 @@ cd jssp-rl-vs-or
 pip install -r requirements.txt
 ```
 
-## 🚀 Usage
+## Usage
 
-The project is organized around two Jupyter notebooks. Run them from the `notebooks/` directory (or set the working directory accordingly so paths to `data/` resolve correctly).
+The project is organized around two Jupyter notebooks. Run them from the `notebooks/` directory (or set the working directory so paths to `data/` resolve correctly).
 
 ### OR-Tools baseline on FT10
 
@@ -48,29 +48,29 @@ visualizer.visualize_gantt_chart(instance)
 
 Open and run [notebooks/02_rl_training.ipynb](./notebooks/02_rl_training.ipynb):
 
-- Trains **Maskable PPO** (`MlpPolicy`) on random 10×10 instances via `FlatJSSPEnv`
+- Trains Maskable PPO (`MlpPolicy`) on random 10×10 instances via `FlatJSSPEnv`
 - Saves checkpoints under `saved_models/`
 - Evaluates each run on the fixed FT10 instance and aggregates makespan statistics
 
 Training uses action masking, entropy regularization sweeps (`ent_coef` ∈ {0.0, 0.05}), and TensorBoard logs under `notebooks/tensorboard_logs/`.
 
-## 📊 Key Findings on the FT10 Benchmark
+## Results on FT10
 
 | Method                        | Makespan (time units) | Inference Time    |
 | ----------------------------- | --------------------- | ----------------- |
-| **OR-Tools (Exact Solver)**   | **930** (Optimal)     | Seconds / Minutes |
-| **RL Agent (No Entropy)**     | ~2629.60 ± 302.02     | **~0.68 ms**      |
-| **RL Agent (Entropy = 0.05)** | ~2608.80 ± 162.77     | **~0.68 ms**      |
+| OR-Tools (exact solver)       | 930 (optimal)         | seconds / minutes |
+| RL agent (no entropy)         | ~2629.60 ± 302.02     | ~0.68 ms          |
+| RL agent (entropy = 0.05)     | ~2608.80 ± 162.77     | ~0.68 ms          |
 
-**What do these results tell us?**
+Summary:
 
-1. **The promise of speed is kept:** The RL agent generates a valid schedule in less than a millisecond (0.68 ms).
-2. **More stability:** By forcing entropy (0.05), we cut the variance in half, making the model much more robust.
-3. **The limits of the MLP architecture:** The RL agent stagnates in a local minimum far from the 930 u.t. optimum. An MLP is essentially a "rigid box". It reads a flat list of numbers but natively lacks the relational logic to understand that *Task A physically blocks Task B*. Furthermore, its fixed input size strictly prevents any *Curriculum Learning* (e.g., training on 3x3 grids before moving to 10x10).
+1. **Inference speed:** the RL agent returns a valid schedule in about 0.68 ms.
+2. **Entropy regularization:** with `ent_coef = 0.05`, variance is roughly halved compared to `ent_coef = 0.0`.
+3. **MLP limitations:** the agent stabilizes far from the optimal makespan of 930. A flat observation vector does not represent precedence and machine conflicts as explicitly as a graph structure, and the fixed input size prevents curriculum training (e.g. 3×3 instances before 10×10).
 
-*Conclusion:* This study clearly maps the breaking point of classical models for the JSSP. The logical next step for future development is to abandon 1D vectors in favor of Disjunctive Graphs and Graph Neural Networks (GNN).
+Graph-based models (disjunctive graphs, GNNs) are a more direct representation for JSSP than 1D vectors.
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 jssp_solver/
@@ -90,7 +90,7 @@ jssp_solver/
 └── requirements.txt
 ```
 
-## 📚 References
+## References
 
 - Fisher & Thompson benchmark instance: `data/ft10.txt`
 - Scheduling theory background: Pinedo, *Scheduling: Theory, Algorithms, and Systems* (Springer, 2008)
